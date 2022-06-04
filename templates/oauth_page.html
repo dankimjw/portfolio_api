@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Assignment 6: OAuth 2.0 Implementation</title>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+   <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<h1> Welcome! This is Assignment 6: OAuth 2.0 Implementation </h1>
+<h2> Created by: Daniel Kim </h2>
+<h3> User OAUTH 2.0 Complete</h3>
+  <h2> User Profile:</h2>
+    <li>First Name: <span> {{ person['firstname'] }}</span></li>
+    <li>Last Name: <span>{{ person['lastname'] }}</span></li>
+    <li>Value of state variable used to secure the original redirect: <span>{{ state_variable }}</span></li>
+
+</body>
+</html>

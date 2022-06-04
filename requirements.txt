@@ -1,0 +1,9 @@
+Flask
+google-cloud-datastore
+python-jose
+flask-cors
+six
+python-dotenv
+requests
+authlib
+pyopenssl

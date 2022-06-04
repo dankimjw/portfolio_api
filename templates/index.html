@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Portfolio Assignment: Final Project </title>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<h1> Welcome! This is Portfolio Assignment: Final Project</h1>
+<h2> Created by: Daniel Kim </h2>
+    {% if session %}
+        <h1>Welcome: {{session.userinfo.name}}!</h1>
+        <p><a id="loglink" href="/user_logout">Logout</a></p>
+        <div id="jwt_id" ><wbr> <div id="jwt_title"> JWT id_token: </div> {{user_sub["id_token"]}}</div>
+        <div id="user_sub"><pre> <div id="jwt_title">Unique ID (SUB VALUE):</div> {{user_sub["userinfo"]["sub"]}}</pre></div>
+        <div id="user_id"><pre> <div id="jwt_title">DataStore ID:</div> {{posted_user_id}}</pre></div>
+    {% else %}
+        <h1>Welcome Guest</h1>
+        <h2>Please click on "Login" to log into your account.</h2>
+        <p><a id="loglink" href="/user_login">Login</a></p>
+    {% endif %}
+</body>
+</html>
+
