@@ -938,6 +938,19 @@ class Utilities:
             return False
 
     def get_pagination(self,limit: int, offset: int, request, constants, filters={}):
+        """ Called in routes to paginate GET request results.
+        Utilizes Google DataStore client and client methods
+
+        Args:
+            limit: Max count of results per page
+            offest: How many results to offset by before returning results
+            request: Actual request received
+            constants: name of the entity found in constants file e.g. "constants.projects"
+            filters: dictionary of key-value pairs that are used to filter the entities
+
+        Returns:
+            q_limit , q_offset, and l_iterator
+        """
         query = self.g_client.query(kind=constants)
         if filters:
             for filter,values in filters.items():
@@ -950,6 +963,16 @@ class Utilities:
         return q_limit, q_offset, l_iterator
 
     def filter_entities(self, constants_name, filters: dict):
+        """ Called in routes to filter for entities.
+        Utilizes Google DataStore client and client methods
+
+        Args:
+            constants_name: name of the entity found in constants file e.g. "constants.projects"
+            filters: dictionary of key-value pairs that are used to filter the entities
+
+        Returns:
+            results: a list of entity results obtained from Google DataStore
+        """
         query = self.g_client.query(kind=constants_name)
         for filter,values in filters.items():
             print("filter: ", filter)
@@ -959,6 +982,18 @@ class Utilities:
         return results
 
     def get_filtered_entity(self, constants_name, filters: dict):
+        """ Called in routes to filter for an entity.
+        Utilizes Google DataStore client and client methods.
+        Method mainly used in admin.py and called by the method
+        def check_user_datastore(constants,filter_vals).
+
+        Args:
+            constants_name: name of the entity found in constants file e.g. "constants.projects"
+            filters: dictionary of key-value pairs that are used to filter the entities
+
+        Returns:
+            entity: returns the first matching entity
+        """
         query = self.g_client.query(kind=constants_name)
         for filter,values in filters.items():
             print("filter: ", filter)
@@ -972,5 +1007,21 @@ class Utilities:
             entity = self.g_client.get(key=entity_key)
             return entity
 
-    def update_team_member(self):
-        pass
+    def check_team_member_project(self, project_entity, team_member_entity):
+        """ Called in /<project_id>/team_members/<team_member_id> route.
+        Method mainly used to check if a team_member entity is already assigned
+        to a project entity
+
+        Args:
+            project_entity: project entity object
+            team_member_entity: team_member entity object
+
+        Returns:
+            True if team member is found in a project
+            False if a team member is not found in a project
+        """
+        if project_entity["team_members"] is not []:
+            for member in project_entity["team_members"]:
+                if member["id"] == team_member_entity.key.id:
+                    return True
+        return False
