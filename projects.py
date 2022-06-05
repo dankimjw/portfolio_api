@@ -69,7 +69,6 @@ def project_get_post():
     # ----------[Get all Projects] ----------
     elif request.method == 'GET':
         payload = verify_jwt(request, 'default')
-
         # Check if client has the correct accept types
         if 'application/json' not in request.accept_mimetypes:
             return jsonify(''), 406
