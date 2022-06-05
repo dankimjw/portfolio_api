@@ -43,7 +43,6 @@ def client_get_post():
         if content is None:
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
 
-
         # Check that all attributes are provided in the request body
         check_result = utilities.check_valid("clients", content)
         print("check_result: ", check_result)
