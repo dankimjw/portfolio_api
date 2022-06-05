@@ -33,7 +33,17 @@ bp = Blueprint('clients', __name__, url_prefix='/clients')
 def client_get_post():
     # ---------- Create a Client ----------
     if request.method == 'POST':
+        # Check if client has the correct accept types and content_type
+        if 'application/json' not in request.content_type:
+            return jsonify(''), 415
+        elif 'application/json' not in request.accept_mimetypes:
+            return jsonify(''), 406
+
         content = request.get_json()
+        if content is None:
+            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
+
+
         # Check that all attributes are provided in the request body
         check_result = utilities.check_valid("clients", content)
         print("check_result: ", check_result)
@@ -43,12 +53,6 @@ def client_get_post():
         # Attribute is missing from the request body
         if check_result == "invalid" or not is_valid_data:
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
-
-        # Check if client has the correct accept types and content_type
-        if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
         else:
             new_client = datastore.entity.Entity(key=gclient.key(constants.clients))
             new_client.update({'name': content['name'], 'industry': content['industry'],
@@ -121,12 +125,10 @@ def clients_get_edit_delete(client_id):
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
         # ---- Check if user had admin access ----
-        if user_entity is not None:
-            # If the user is not the current admins
-            if user_entity["admin"] is False:
-                return jsonify({"Error": "User is not an admin."}), 403
-        else:
-            return jsonify({"Error": "User is not registered, logged in via log-in page"}), 401
+        # If the user is not the current admins
+        if user_entity["admin"] is False:
+            return jsonify({"Error": "User is not an admin."}), 403
+
         # User is registered and has admin access
         if user_entity is not None and user_entity["admin"] == True:
             # Proceed to find the Client entity
@@ -151,36 +153,38 @@ def clients_get_edit_delete(client_id):
             return res
     # ---------- PATCH method: only edit some attributes of a Client with client_id ----------
     elif request.method == 'PATCH':
-        # Check if there is a request body and that the request body data is valid
-        content = request.get_json()
-        is_valid_data = utilities.check_datatype_valid("clients", content, "PATCH")
-        # Attribute is missing from the request body
-        if not is_valid_data:
-            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
-
         # ----- Check if user has valid JWT -----
         payload = verify_jwt(request, 'default')
         user_sub = payload["sub"]
         # Get current user with matching sub value
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
-        # ---- Check if user had admin access ----
-        if user_entity is not None:
-            # If the user is not the current admins
-            if user_entity["admin"] is False:
-                return jsonify({"Error": "User is not an admin."}), 403
-        else:
-            return jsonify({"Error": "User is not registered, logged in via log-in page"}), 401
 
-        client_key, client_entity = utilities.get_key_entity(constants.clients, int(client_id))
-        # Boat or load with id is not found
-        if client_entity is None:
-            return {"Error": "No client with this client_id exists"}, 404
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.content_type:
             return jsonify(''), 415
         elif 'application/json' not in request.accept_mimetypes:
             return jsonify(''), 406
+
+        # Check if there is a request body and that the request body data is valid
+        content = request.get_json()
+        if content is None:
+            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
+
+        is_valid_data = utilities.check_datatype_valid("clients", content, "PATCH")
+        # Attribute is missing from the request body
+        if not is_valid_data:
+            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
+
+        # ---- Check if user had admin access ----
+        # If the user is not the current admins
+        if user_entity["admin"] is False:
+            return jsonify({"Error": "User is not an admin."}), 403
+
+        client_key, client_entity = utilities.get_key_entity(constants.clients, int(client_id))
+        # Boat or load with id is not found
+        if client_entity is None:
+            return {"Error": "No client with this client_id exists"}, 404
         else:
             # Check that attributes are of the correct type and not duplicates
             for key in content.keys():
@@ -221,8 +225,24 @@ def clients_get_edit_delete(client_id):
 
     # ---------- PUT method: required to edit/provide all attributes of a Client with client_id ----------
     elif request.method == 'PUT':
+        # ----- Check if user has valid JWT -----
+        payload = verify_jwt(request, 'default')
+        user_sub = payload["sub"]
+        # Get current user with matching sub value
+        filter_vals = {"sub": user_sub}
+        user_entity = check_user_datastore(constants.users, filter_vals)
+
+        # Check if client has the correct accept types and content_type
+        if 'application/json' not in request.content_type:
+            return jsonify(''), 415
+        elif 'application/json' not in request.accept_mimetypes:
+            return jsonify(''), 406
+
         # Check if there is a request body and that the request body data is valid
         content = request.get_json()
+        if content is None:
+            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
+
         # Check that all attributes are provided in the request body
         check_result = utilities.check_valid("clients", content)
         is_valid_data = utilities.check_datatype_valid("clients", content, "PUT")
@@ -231,29 +251,15 @@ def clients_get_edit_delete(client_id):
         if check_result == "invalid" or not is_valid_data:
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
 
-        # ----- Check if user has valid JWT -----
-        payload = verify_jwt(request, 'default')
-        user_sub = payload["sub"]
-        # Get current user with matching sub value
-        filter_vals = {"sub": user_sub}
-        user_entity = check_user_datastore(constants.users, filter_vals)
         # ---- Check if user had admin access ----
-        if user_entity is not None:
-            # If the user is not the current admins
-            if user_entity["admin"] is False:
-                return jsonify({"Error": "User is not an admin."}), 403
-        else:
-            return jsonify({"Error": "User is not registered, logged in via log-in page"}), 401
+        # If the user is not the current admins
+        if user_entity["admin"] is False:
+            return jsonify({"Error": "User is not an admin."}), 403
 
         client_key, client_entity = utilities.get_key_entity(constants.clients, int(client_id))
         # Boat or load with id is not found
         if client_entity is None:
             return jsonify({"Error": "No client with this client_id exists"}), 404
-        # Check if client has the correct accept types and content_type
-        if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
         else:
             # Delete the current client-projects relationship
             if client_entity["projects"] is not None:
