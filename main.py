@@ -68,9 +68,6 @@ CLIENT_SECRET = data['CLIENT_SECRET']
 DOMAIN = data['DOMAIN']
 ALGORITHMS = ["RS256"]
 
-# CLIENT_ID = "px5AfPttTD5Wq9xHoeeT02S7FV8byBqJ"
-# CLIENT_SECRET = "SGoKuN86QZPplqyy4raVkZA7rwKOJpJ7dcUPlEaHvq3krM4v5AuZfbdf52srEE6d"
-# DOMAIN = "hw7-kimd3.us.auth0.com"
 # For example
 # DOMAIN = 'fall21.us.auth0.com'
 LOGIN_URL_TEST = "http://127.0.0.1:8080"
@@ -101,33 +98,13 @@ server_metadata_url=f'https://{DOMAIN}/.well-known/openid-configuration'
 
 # This code is adapted from https://auth0.com/docs/quickstart/backend/python/01-authorization?_ga=2.46956069.349333901.1589042886-466012638.1589042885#create-the-jwt-validation-decorator
 
-# class AuthError(Exception):
-#     def __init__(self, error, status_code):
-#         self.error = error
-#         self.status_code = status_code
-#
-# verifyJWT
-
-
 @app.errorhandler(AuthError)
 def handle_auth_error(ex):
     response = jsonify(ex.error)
     response.status_code = ex.status_code
     return response
 #
-# # Return 405 error for unsupported methods on endpoints
-# @app.errorhandler(405)
-# def method_not_allowed():
-#     msg = {"Error": "Method not allowed."}
-#     res = make_response(json.dumps(error=msg))
-#     # res = make_response(json.dumps(error=str(e)))
-#     # res.headers["Allow"] = 'POST'
-#     res.headers.set('Content-Type', 'application/json')
-#     res.status_code = 405
-#     return res
-
 # Decode the JWT supplied in the Authorization header
-
 @app.route('/decode', methods=['GET'])
 def decode_jwt():
     payload = verify_jwt(request, 'default')
@@ -237,6 +214,8 @@ def users_get():
     else:
         return 'Method not recognized'
 
+# ------------------------------------ ADMIN ------------------------------------------------------
+
 @app.route('/admin', methods=['GET', 'POST', 'DELETE'])
 def admin_post():
     if request.method == "GET":
@@ -247,15 +226,15 @@ def admin_post():
             return jsonify(''), 406
         else:
             filter_vals = {"admin": True}
-            user_entity = utilities.get_filtered_entity(constants.users, filter_vals)
-            if user_entity is not None:
+            results = utilities.filter_entities(constants.users, filter_vals)
+            for user_entity in results:
                 user_entity["id"] = user_entity.key.id
-                res = make_response(json.dumps(user_entity))
-                res.headers.set('Content-Type', 'application/json')
-                res.status_code = 200
-                return res
-            else:
-                return jsonify({"Error": "No user is assigned as Admin."}), 400
+
+            output = {"admins": results}
+            res = make_response(json.dumps(output))
+            res.headers.set('Content-Type', 'application/json')
+            res.status_code = 200
+            return res
 
     # This route requires a valid JWT with user already registered/logged-in
     elif request.method == "POST":
@@ -264,34 +243,22 @@ def admin_post():
         user_sub = payload["sub"]
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
-        # print("user_entity: ", user_entity)
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.accept_mimetypes:
             return jsonify(''), 406
         if user_entity is not None:
-            # user_entity = utilities.get_filtered_entity(constants.users, filter_vals)
-            # return jsonify({"Error: User is not registered/logged in via log-in page"}), 401
-            print("User_entity admin: ", user_entity['admin'])
-            # Check if there is already an admin
-            current_admin = get_admins()
-            print("Current_admin: ", current_admin)
             # User is not already admin
             if user_entity["admin"] is False:
-                # There is no current admin
-                if current_admin == []:
-                    patched_user_entity = set_revoke_admin(user_entity, "SET")
-                    patched_user_entity["id"] = patched_user_entity.key.id
-                    res = make_response(json.dumps(patched_user_entity))
-                    res.headers.set('Content-Type', 'application/json')
-                    res.status_code = 201
-                    return res
-                else:
-                # Another user is already admin
-                # That user's admin access must be deleted first
-                    return jsonify({"Error": "A different user is already admin. Revoke user's admin access first."}), 403
+                patched_user_entity = set_revoke_admin(user_entity, "SET")
+                patched_user_entity["id"] = patched_user_entity.key.id
+                res = make_response(json.dumps(patched_user_entity))
+                res.headers.set('Content-Type', 'application/json')
+                res.status_code = 201
+                return res
+
             else:
                 # User is already the current admin
-                return jsonify({"Error": "User is already the current admin"}), 400
+                return jsonify({"Error": "User is already an admin."}), 400
         else:
             return jsonify({"Error": "User is not registered, logged in via log-in page"}), 401
 
@@ -306,27 +273,28 @@ def admin_post():
             # Check if there is already an admin
             current_admin = get_admins()
             print("Current_admin: ", current_admin)
-            # There is no current admin
-            if current_admin == []:
-                return jsonify({"Error": "User is not the current admin"}), 403
+            # There are no current admins
+            if current_admin == [] or user_entity['admin'] is False:
+                return jsonify({"Error": "User is not an admin."}), 403
             else:
                 # User is the current admin
-                if user_entity["admin"] is True:
-                    set_revoke_admin(user_entity, "REVOKE")
-                    res = make_response('')
-                    res.headers.set('Content-Type', 'application/json')
-                    res.status_code = 204
-                    return res
-                # There is already an admin
-                else:
-                    return jsonify({"Error": "A different user is already admin."}), 403
+                set_revoke_admin(user_entity, "REVOKE")
+                res = make_response('')
+                res.headers.set('Content-Type', 'application/json')
+                res.status_code = 204
+                return res
         else:
             return jsonify({"Error": "User is not found in DataStore. "
                                      "User is not registered, logged in via log-in page"}), 401
     else:
         return 'Method not recognized'
 
-# ---------------------------------------------------------------------------------------------------
+@app.route('/test', methods=['GET', 'POST', 'DELETE'])
+def test_url():
+    if request.method=='GET':
+        content = request.get_json()
+        return '',200
+
 
 if __name__ == '__main__':
     # app.run(host='127.0.0.1', port=8080, debug=True)
