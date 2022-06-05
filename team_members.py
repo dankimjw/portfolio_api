@@ -30,7 +30,15 @@ bp = Blueprint('team_members', __name__, url_prefix='/team_members')
 @bp.route('', methods=['GET', 'POST'])
 def team_members_get_post():
     if request.method == 'POST':
+        # Check if client has the correct accept types and content_type
+        if 'application/json' not in request.content_type:
+            return jsonify(''), 415
+        elif 'application/json' not in request.accept_mimetypes:
+            return jsonify(''), 406
+
         content = request.get_json()
+        if content is None:
+            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
         # Check that all attributes are provided in the request body
         check_result = utilities.check_valid("team_members", content)
         print("check_result: ", check_result)
@@ -40,11 +48,6 @@ def team_members_get_post():
         # Attribute is missing from the request body
         if check_result == "invalid" or not is_valid_data:
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
-        # Check if client has the correct accept types and content_type
-        if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
         else:
             new_team_member = datastore.entity.Entity(key=client.key(constants.team_members))
             new_team_member.update({'name': content['name'], 'join_date': content['join_date'],
@@ -59,7 +62,6 @@ def team_members_get_post():
             return res
     # ---------- [Get all Team Members] ----------
     elif request.method == 'GET':
-        # payload = verify_jwt(request, 'GET', 'default')
         # Check if client has the correct accept types
         if 'application/json' not in request.accept_mimetypes:
             return jsonify(''), 406
@@ -119,12 +121,9 @@ def team_members_get_edit_delete(team_member_id):
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
         # ---- Check if user had admin access ----
-        if user_entity is not None:
-            # If the user is not the current admins
-            if user_entity["admin"] is False:
-                return jsonify({"Error": "User is not an admin."}), 403
-        else:
-            return jsonify({"Error": "User is not registered, logged in via log-in page"}), 401
+        # If the user is not the current admins
+        if user_entity["admin"] is False:
+            return jsonify({"Error": "User is not an admin."}), 403
 
         if user_entity is not None and user_entity["admin"] == True:
             team_member_key, team_member_entity = utilities.get_key_entity(constants.team_members, int(team_member_id))
@@ -148,34 +147,37 @@ def team_members_get_edit_delete(team_member_id):
 
     # PATCH method: only edit some attributes of a team_members with team_member_id
     elif request.method == 'PATCH':
-        content = request.get_json()
-        is_valid_data = utilities.check_datatype_valid("team_members", content, "PATCH")
-        # Attribute is missing from the request body
-        if not is_valid_data:
-            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
         # ----- Check if user has valid JWT -----
         payload = verify_jwt(request, 'default')
         user_sub = payload["sub"]
         # Get current user with matching sub value
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
-        # ---- Check if user had admin access ----
-        if user_entity is not None:
-            # If the user is not the current admins
-            if user_entity["admin"] is False:
-                return jsonify({"Error": "User is not an admin."}), 403
-        else:
-            return jsonify({"Error": "User is not registered, logged in via log-in page"}), 401
 
-        team_member_key, team_member_entity = utilities.get_key_entity(constants.team_members, int(team_member_id))
-        # project or team_member with id is not found
-        if team_member_entity is None:
-            return {"Error": "No team_member with this team_member_id exists"}, 404
         # Check if team_member has the correct accept types and content_type
         if 'application/json' not in request.content_type:
             return jsonify(''), 415
         elif 'application/json' not in request.accept_mimetypes:
             return jsonify(''), 406
+
+        content = request.get_json()
+        if content is None:
+            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
+
+        is_valid_data = utilities.check_datatype_valid("team_members", content, "PATCH")
+        # Attribute is missing from the request body
+        if not is_valid_data:
+            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
+
+        # ---- Check if user had admin access ----
+        # If the user is not the current admins
+        if user_entity["admin"] is False:
+            return jsonify({"Error": "User is not an admin."}), 403
+
+        team_member_key, team_member_entity = utilities.get_key_entity(constants.team_members, int(team_member_id))
+        # project or team_member with id is not found
+        if team_member_entity is None:
+            return {"Error": "No team_member with this team_member_id exists"}, 404
         else:
             # Check that attributes are of the correct type and not duplicates
             for key in content.keys():
@@ -213,7 +215,15 @@ def team_members_get_edit_delete(team_member_id):
             return res
     # PUT method: required to edit/provide all attributes of a project with project_id
     elif request.method == 'PUT':
+        # Check if client has the correct accept types and content_type
+        if 'application/json' not in request.content_type:
+            return jsonify(''), 415
+        elif 'application/json' not in request.accept_mimetypes:
+            return jsonify(''), 406
+
         content = request.get_json()
+        if content is None:
+            return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
         # Check that all attributes are provided in the request body
         check_result = utilities.check_valid("team_members", content)
         is_valid_data = utilities.check_datatype_valid("team_members", content, "PUT")
@@ -227,25 +237,14 @@ def team_members_get_edit_delete(team_member_id):
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
         # ---- Check if user had admin access ----
-        if user_entity is not None:
-            # Check if there is already an admin
-            current_admin = get_admins()
-            print("Current_admin: ", current_admin)
-            # If the user is not the current admins
-            if user_entity["admin"] is False:
-                return jsonify({"Error": "User is not an admin."}), 403
-        else:
-            return jsonify({"Error": "User is not registered, logged in via log-in page"}), 401
+        # If the user is not the current admins
+        if user_entity["admin"] is False:
+            return jsonify({"Error": "User is not an admin."}), 403
 
         team_member_key, team_member_entity = utilities.get_key_entity(constants.team_members, int(team_member_id))
         # Boat or load with id is not found
         if team_member_entity is None:
             return jsonify({"Error": "No team_members with this team_member_id exists"}), 404
-        # Check if client has the correct accept types and content_type
-        if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
         else:
             # Delete the current team_member relationships
             # Delete the current client-projects relationship
