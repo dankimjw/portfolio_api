@@ -32,9 +32,17 @@ def project_get_post():
     if request.method == 'POST':
         payload = verify_jwt(request, 'default')
         print("sub", payload["sub"])
+
+        # Check if client has the correct accept types and content_type
+        if 'application/json' not in request.content_type:
+            return jsonify(''), 415
+        elif 'application/json' not in request.accept_mimetypes:
+            return jsonify(''), 406
+
         content = request.get_json()
         if content is None:
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
+
         # Check that all attributes are provided in the request body
         check_result = utilities.check_valid("projects", content)
         print("check_result: ", check_result)
@@ -43,11 +51,7 @@ def project_get_post():
         # Attribute is missing from the request body
         if check_result == "invalid" or not is_valid_data:
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
-        # Check if client has the correct accept types and content_type
-        if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+
         else:
             new_project = datastore.entity.Entity(key=client.key(constants.projects))
             new_project.update({'name': content['name'], 'budget': int(content['budget']),
@@ -65,9 +69,11 @@ def project_get_post():
     # ----------[Get all Projects] ----------
     elif request.method == 'GET':
         payload = verify_jwt(request, 'default')
+
         # Check if client has the correct accept types
         if 'application/json' not in request.accept_mimetypes:
             return jsonify(''), 406
+
         # If JWT is valid
         if payload != False:
             jwt_sub_value = payload["sub"]
@@ -102,14 +108,14 @@ def project_get_post():
 # ------------------------------------ [/projects/project_id]-----------------------------------------------------
 @bp.route('/<project_id>', methods=['GET', 'PUT', 'PATCH', 'DELETE'])
 def projects_get_edit_delete(project_id):
-    # View a boat with boat_id
-    payload = verify_jwt(request, 'default')
-    print("sub", payload["sub"])
-    jwt_sub_value = payload["sub"]
-    print('jwt_sub_value: ', jwt_sub_value)
-    filter_vals = {"project_owner": jwt_sub_value}
     # ----------[Get a project with project_id] ----------
     if request.method == 'GET':
+        # Check User JWT
+        payload = verify_jwt(request, 'default')
+        print("sub", payload["sub"])
+        jwt_sub_value = payload["sub"]
+        print('jwt_sub_value: ', jwt_sub_value)
+
         # if the client requests accepts only a mimetype that is not json then error
         if 'application/json' not in request.accept_mimetypes:
             return jsonify(''), 406
@@ -136,6 +142,12 @@ def projects_get_edit_delete(project_id):
             return res
     # ---------- Delete a project with project_id ----------
     elif request.method == 'DELETE':
+        # Check User JWT
+        payload = verify_jwt(request, 'default')
+        print("sub", payload["sub"])
+        jwt_sub_value = payload["sub"]
+        print('jwt_sub_value: ', jwt_sub_value)
+
         project_key, project = utilities.get_key_entity(constants.projects, int(project_id))
         if project is None:
             return jsonify({"Error": "No project with this project_id exists"}), 404
@@ -167,6 +179,16 @@ def projects_get_edit_delete(project_id):
             return res
     # ---------- PATCH method: only edit some attributes of a projects with projects_id ----------
     elif request.method == 'PATCH':
+        # Check User JWT
+        payload = verify_jwt(request, 'default')
+        print("sub", payload["sub"])
+        jwt_sub_value = payload["sub"]
+        print('jwt_sub_value: ', jwt_sub_value)
+
+        # Check if client has the correct accept types and content_type
+        if 'application/json' not in request.content_type:
+            return jsonify(''), 415
+
         content = request.get_json()
         # No data provided in request body
         if content is None:
@@ -183,9 +205,7 @@ def projects_get_edit_delete(project_id):
         # Ownership Validation: Check if JWT sub value matches project's sub value
         if project['project_owner'] != jwt_sub_value:
             return jsonify({"Error": "Invalid project_owner for this project_id"}), 403
-        # Check if client has the correct accept types and content_type
-        if 'application/json' not in request.content_type:
-            return jsonify(''), 415
+
         else:
             # Check that team_members or client attributes are correct formats
             for key in content.keys():
@@ -249,10 +269,21 @@ def projects_get_edit_delete(project_id):
             return res
     # ---------- PUT method: required to edit/provide all attributes of a project with project_id ----------
     elif request.method == 'PUT':
+        # Check User JWT
+        payload = verify_jwt(request, 'default')
+        print("sub", payload["sub"])
+        jwt_sub_value = payload["sub"]
+        print('jwt_sub_value: ', jwt_sub_value)
+
+        # Check if client has the correct accept types and content_type
+        if 'application/json' not in request.content_type:
+            return jsonify(''), 415
+        elif 'application/json' not in request.accept_mimetypes:
+            return jsonify(''), 406
+
         content = request.get_json()
         # No data provided in the request body
         if content is None:
-            print("empty content")
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
         # Check that all attributes are provided in the request body
         is_valid_data = utilities.check_datatype_valid("projects", content, "PUT")
@@ -267,11 +298,7 @@ def projects_get_edit_delete(project_id):
         # Ownership Validation: Check if JWT sub value matches project's sub value
         if project['project_owner'] != jwt_sub_value:
             return jsonify({"Error": "Invalid project_owner for this project_id"}), 403
-        # Check if client has the correct accept types and content_type
-        if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+
         else:
             # Delete the current team_member relationship
             if project["team_members"] is not []:
@@ -331,14 +358,14 @@ def projects_get_edit_delete(project_id):
 # ------------------------------------ PROJECTS and Team_Members-----------------------------------------------------
 @bp.route('/<project_id>/team_members/<team_member_id>', methods=['PUT', 'DELETE'])
 def add_delete_team_members(project_id, team_member_id):
-    payload = verify_jwt(request, 'default')
-    print("sub", payload["sub"])
-    jwt_sub_value = payload["sub"]
-    print('jwt_sub_value: ', jwt_sub_value)
-    filter_vals = {"project_owner": jwt_sub_value}
     # Assign a team_member to the project
     if request.method == 'PUT':
-        # ------------------- Put in a separate function -------------------
+        payload = verify_jwt(request, 'default')
+        print("sub", payload["sub"])
+        jwt_sub_value = payload["sub"]
+        print('jwt_sub_value: ', jwt_sub_value)
+        filter_vals = {"project_owner": jwt_sub_value}
+
         project_key, project = utilities.get_key_entity(constants.projects, int(project_id))
         team_member_key, team_member = utilities.get_key_entity(constants.team_members, int(team_member_id))
 
@@ -364,6 +391,12 @@ def add_delete_team_members(project_id, team_member_id):
             return jsonify(''), 204
     # Remove a load from a boat
     elif request.method == 'DELETE':
+        payload = verify_jwt(request, 'default')
+        print("sub", payload["sub"])
+        jwt_sub_value = payload["sub"]
+        print('jwt_sub_value: ', jwt_sub_value)
+        filter_vals = {"project_owner": jwt_sub_value}
+
         project_key, project = utilities.get_key_entity(constants.projects, int(project_id))
         team_member_key, team_member = utilities.get_key_entity(constants.team_members, int(team_member_id))
         # Project or team_members with id is not found
