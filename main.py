@@ -2,27 +2,8 @@ from google.cloud import datastore
 from flask import Flask, request, make_response, jsonify, _request_ctx_stack
 import requests
 
-from functools import wraps
 import json
-
-from six.moves.urllib.request import urlopen
-from flask_cors import cross_origin
-from jose import jwt
-
-
-import json
-from os import environ as env
-from werkzeug.exceptions import HTTPException
-
-from dotenv import load_dotenv, find_dotenv
-from flask import Flask
 from flask import jsonify
-from flask import redirect
-from flask import render_template
-from flask import session
-from flask import url_for
-from authlib.integrations.flask_client import OAuth
-from six.moves.urllib.parse import urlencode
 from urllib.parse import quote_plus, urlencode
 from authlib.integrations.flask_client import OAuth
 from flask import Flask, redirect, render_template, session, url_for
@@ -78,8 +59,6 @@ REDIRECT_URI_LIVE = "https://portfolio-kimd3.ue.r.appspot.com/authO"
 # --------------[** CHANGE **] ------------- when testing and using live -----------------
 REDIRECT_CALLBACK_URL = REDIRECT_URI_TEST
 # --------------[** CHANGE **] ------------- when testing and using live -----------------
-
-
 
 oauth = OAuth(app)
 
@@ -222,6 +201,7 @@ def admin_post():
         payload = verify_jwt(request, 'default')
         print("sub", payload["sub"])
         user_sub = payload["sub"]
+
         if 'application/json' not in request.accept_mimetypes:
             return jsonify(''), 406
         else:
@@ -246,21 +226,18 @@ def admin_post():
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.accept_mimetypes:
             return jsonify(''), 406
-        if user_entity is not None:
-            # User is not already admin
-            if user_entity["admin"] is False:
-                patched_user_entity = set_revoke_admin(user_entity, "SET")
-                patched_user_entity["id"] = patched_user_entity.key.id
-                res = make_response(json.dumps(patched_user_entity))
-                res.headers.set('Content-Type', 'application/json')
-                res.status_code = 201
-                return res
+        # User is not already admin
+        if user_entity["admin"] is False:
+            patched_user_entity = set_revoke_admin(user_entity, "SET")
+            patched_user_entity["id"] = patched_user_entity.key.id
+            res = make_response(json.dumps(patched_user_entity))
+            res.headers.set('Content-Type', 'application/json')
+            res.status_code = 201
+            return res
 
-            else:
-                # User is already the current admin
-                return jsonify({"Error": "User is already an admin."}), 400
         else:
-            return jsonify({"Error": "User is not registered, logged in via log-in page"}), 401
+            # User is already the current admin
+            return jsonify({"Error": "User is already an admin."}), 400
 
     elif request.method == "DELETE":
         payload = verify_jwt(request, 'default')
@@ -268,24 +245,21 @@ def admin_post():
         user_sub = payload["sub"]
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
-        if user_entity is not None:
-            print("User_entity admin: ", user_entity['admin'])
-            # Check if there is already an admin
-            current_admin = get_admins()
-            print("Current_admin: ", current_admin)
-            # There are no current admins
-            if current_admin == [] or user_entity['admin'] is False:
-                return jsonify({"Error": "User is not an admin."}), 403
-            else:
-                # User is the current admin
-                set_revoke_admin(user_entity, "REVOKE")
-                res = make_response('')
-                res.headers.set('Content-Type', 'application/json')
-                res.status_code = 204
-                return res
+        print("User_entity admin: ", user_entity['admin'])
+        # Check if there is already an admin
+        current_admin = get_admins()
+        print("Current_admin: ", current_admin)
+        # There are no current admins
+        if current_admin == [] or user_entity['admin'] is False:
+            return jsonify({"Error": "User is not an admin."}), 403
         else:
-            return jsonify({"Error": "User is not found in DataStore. "
-                                     "User is not registered, logged in via log-in page"}), 401
+            # User is the current admin
+            set_revoke_admin(user_entity, "REVOKE")
+            res = make_response('')
+            res.headers.set('Content-Type', 'application/json')
+            res.status_code = 204
+            return res
+
     else:
         return 'Method not recognized'
 
@@ -299,4 +273,3 @@ def test_url():
 if __name__ == '__main__':
     # app.run(host='127.0.0.1', port=8080, debug=True)
     app.run(host='127.0.0.1', port=8000, debug=True, ssl_context='adhoc')
-
