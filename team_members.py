@@ -39,6 +39,7 @@ def team_members_get_post():
         content = request.get_json()
         if content is None:
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
+
         # Check that all attributes are provided in the request body
         check_result = utilities.check_valid("team_members", content)
         print("check_result: ", check_result)
@@ -215,6 +216,13 @@ def team_members_get_edit_delete(team_member_id):
             return res
     # PUT method: required to edit/provide all attributes of a project with project_id
     elif request.method == 'PUT':
+        # ----- Check if user has valid JWT -----
+        payload = verify_jwt(request, 'default')
+        user_sub = payload["sub"]
+        # Get current user with matching sub value
+        filter_vals = {"sub": user_sub}
+        user_entity = check_user_datastore(constants.users, filter_vals)
+
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.content_type:
             return jsonify(''), 415
@@ -230,12 +238,7 @@ def team_members_get_edit_delete(team_member_id):
         # Attribute is missing from the request body
         if check_result == "invalid" or not is_valid_data:
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
-        # ----- Check if user has valid JWT -----
-        payload = verify_jwt(request, 'default')
-        user_sub = payload["sub"]
-        # Get current user with matching sub value
-        filter_vals = {"sub": user_sub}
-        user_entity = check_user_datastore(constants.users, filter_vals)
+
         # ---- Check if user had admin access ----
         # If the user is not the current admins
         if user_entity["admin"] is False:
