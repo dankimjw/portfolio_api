@@ -30,14 +30,16 @@ bp = Blueprint('projects', __name__, url_prefix='/projects')
 def project_get_post():
     # ----------[Create a Project] ----------
     if request.method == 'POST':
+
         payload = verify_jwt(request, 'default')
         print("sub", payload["sub"])
 
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+                return jsonify(''), 415
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
 
         content = request.get_json()
         if content is None:
@@ -70,8 +72,10 @@ def project_get_post():
     elif request.method == 'GET':
         payload = verify_jwt(request, 'default')
         # Check if client has the correct accept types
-        if 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
+
 
         # If JWT is valid
         if payload != False:
@@ -116,8 +120,9 @@ def projects_get_edit_delete(project_id):
         print('jwt_sub_value: ', jwt_sub_value)
 
         # if the client requests accepts only a mimetype that is not json then error
-        if 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
 
         project_key, project = utilities.get_key_entity(constants.projects, int(project_id))
         # Ownership Validation: Check if JWT sub value matches project's sub value
@@ -277,8 +282,9 @@ def projects_get_edit_delete(project_id):
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.content_type:
             return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
 
         content = request.get_json()
         # No data provided in the request body
