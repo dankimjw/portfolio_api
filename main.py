@@ -224,8 +224,9 @@ def admin_post():
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
         # Check if client has the correct accept types and content_type
-        if 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
         # User is not already admin
         if user_entity["admin"] is False:
             patched_user_entity = set_revoke_admin(user_entity, "SET")

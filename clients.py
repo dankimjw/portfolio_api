@@ -35,9 +35,10 @@ def client_get_post():
     if request.method == 'POST':
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+                return jsonify(''), 415
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
 
         content = request.get_json()
         if content is None:
@@ -67,8 +68,9 @@ def client_get_post():
     # ---------- Get All Clients ----------
     elif request.method == 'GET':
         # Check if client has the correct accept types
-        if 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
         # If JWT is valid
         q_offset, q_limit, l_iterator = utilities.get_pagination(5, 0, request, constants.clients)
         pages = l_iterator.pages
@@ -98,8 +100,9 @@ def client_get_post():
 def clients_get_edit_delete(client_id):
     if request.method == 'GET':
         # if the client requests accepts only a mimetype that is not json then error
-        if 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
 
         client_key, client_entity = utilities.get_key_entity(constants.clients, int(client_id))
         # Ownership Validation: Check if JWT sub value matches project's sub value
@@ -159,11 +162,9 @@ def clients_get_edit_delete(client_id):
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
 
-        # Check if client has the correct accept types and content_type
+        # Check if client has the correct content_type
         if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+                return jsonify(''), 415
 
         # Check if there is a request body and that the request body data is valid
         content = request.get_json()
@@ -233,9 +234,10 @@ def clients_get_edit_delete(client_id):
 
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+                return jsonify(''), 415
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
 
         # Check if there is a request body and that the request body data is valid
         content = request.get_json()

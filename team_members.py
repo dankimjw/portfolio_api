@@ -32,9 +32,10 @@ def team_members_get_post():
     if request.method == 'POST':
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+                return jsonify(''), 415
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
 
         content = request.get_json()
         if content is None:
@@ -64,8 +65,9 @@ def team_members_get_post():
     # ---------- [Get all Team Members] ----------
     elif request.method == 'GET':
         # Check if client has the correct accept types
-        if 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
         # If JWT is valid
         q_offset, q_limit, l_iterator = utilities.get_pagination(5, 0, request, constants.team_members)
         pages = l_iterator.pages
@@ -96,8 +98,9 @@ def team_members_get_edit_delete(team_member_id):
     # View a team_members with team_member_id
     if request.method == 'GET':
         # if the client requests accepts only a mimetype that is not json then error
-        if 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
 
         team_member_key, team_member_entity = utilities.get_key_entity(constants.team_members, int(team_member_id))
         # Ownership Validation: Check if JWT sub value matches project's sub value
@@ -155,11 +158,9 @@ def team_members_get_edit_delete(team_member_id):
         filter_vals = {"sub": user_sub}
         user_entity = check_user_datastore(constants.users, filter_vals)
 
-        # Check if team_member has the correct accept types and content_type
+        # Check if team_member has the correct content_type
         if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+                return jsonify(''), 415
 
         content = request.get_json()
         if content is None:
@@ -219,19 +220,24 @@ def team_members_get_edit_delete(team_member_id):
         # ----- Check if user has valid JWT -----
         payload = verify_jwt(request, 'default')
         user_sub = payload["sub"]
-        # Get current user with matching sub value
-        filter_vals = {"sub": user_sub}
-        user_entity = check_user_datastore(constants.users, filter_vals)
 
         # Check if client has the correct accept types and content_type
         if 'application/json' not in request.content_type:
-            return jsonify(''), 415
-        elif 'application/json' not in request.accept_mimetypes:
-            return jsonify(''), 406
+                return jsonify(''), 415
+        if 'application/json' != request.headers["Accept"]:
+            if '*/*' != request.headers["Accept"]:
+                return jsonify(''), 406
+
+
+        # Get current user with matching sub value
+        filter_vals = {"sub": user_sub}
+        user_entity = check_user_datastore(constants.users, filter_vals)
+        print(request.headers)
 
         content = request.get_json()
         if content is None:
             return jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400
+
         # Check that all attributes are provided in the request body
         check_result = utilities.check_valid("team_members", content)
         is_valid_data = utilities.check_datatype_valid("team_members", content, "PUT")
