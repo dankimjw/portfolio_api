@@ -55,9 +55,9 @@ LOGIN_URL_TEST = "http://127.0.0.1:8080"
 LOGIN_URL_LIVE = "https://portfolio-kimd3.ue.r.appspot.com"
 
 REDIRECT_URI_TEST = "https://127.0.0.1:8080/authO"
-REDIRECT_URI_LIVE = "https://portfolio-kimd3.ue.r.appspot.com/authO"
+REDIRECT_URI_LIVE = "https://portfolio-kimd3.uc.r.appspot.com/authO"
 # --------------[** CHANGE **] ------------- when testing and using live -----------------
-REDIRECT_CALLBACK_URL = REDIRECT_URI_TEST
+REDIRECT_CALLBACK_URL = REDIRECT_URI_LIVE
 # --------------[** CHANGE **] ------------- when testing and using live -----------------
 
 oauth = OAuth(app)
