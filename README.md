@@ -2,4 +2,4 @@
 
 ## Routes
 
-![image-1](./static/images/Routes List.png)
+![image-1](./images/Routes List.png)
