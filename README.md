@@ -2,4 +2,4 @@
 
 ## Routes
 
-![routeslist-1](/images/RoutesList.png)
+![routeslist-1](https://github.com/dankimjw/portfolio_api/blob/master/images/RouteList.png)
