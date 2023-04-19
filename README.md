@@ -1,13 +1,13 @@
-# CS 493 Cloud Applications - Portfolio Project
+# Project Management - REST API Project
 
 ## Purpose
 
 Implement a REST API that uses proper resource based URLs, pagination and status codes. In addition you will need to implement some sort of system for creating users and for authorization. You will deploy your application on Google Cloud Platform.
 
-The default is that you must use
-* Datastore to store your data
-* Either Node.js or Python 3, and
-* Google App Engine to deploy your project
+Technical Details:
+* Datastore is used to store the relevant data
+* Language/Packages: Python 3 and Flask
+* Google App Engine to deploy the project
 
 ## Instructions
 
